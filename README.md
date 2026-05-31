@@ -1,4 +1,3 @@
-```markdown
 # Offline-First Issue Tracker
 
 A production-ready, highly optimized iOS application built with **SwiftUI** and **SwiftData** demonstrating advanced offline-first architecture. This project showcases thread-safe data synchronization, background actor isolation, unidirectional data flow, and compile-time type safety designed to meet senior-level engineering standards.
@@ -15,7 +14,7 @@ To guarantee that database serialization and network dispatching never block the
 ### 2. Transactional Write-Ahead Outbox (The Outbox Pattern)
 Instead of relying on ephemeral state tracking or immediate network responses, mutations performed while offline are recorded atomically as a discrete `SyncAction` transaction. 
 * When a write operation occurs (e.g., creating an issue, updating a status), the change is committed to the local database alongside a corresponding outbox record in a single atomic transaction.
-* This guarantees data resiliency; if the app crashes, kills its background execution, or loses power, the exact intended user mutation is safe on disk.
+* This guarantees data resiliency; if the app crashes, loses power, or is killed in the background, the exact user mutation is safely preserved on disk.
 * Upon network restoration via `NWPathMonitor`, the `SyncEngine` wakes up, fetches the pending log chronologically, replays the payloads sequentially against a mock REST backend, and clears the outbox log on verified success.
 
 ### 3. Compile-Time Type Safety
@@ -49,3 +48,26 @@ The codebase enforces strict **Separation of Concerns** by grouping functional l
  ┃   ┗ 📜 IssueListVM.swift        # MainActor-isolated reactive presentation View Model
  ┗ 📂 Mocks / Debug
    ┗ 📜 Issue+Mock.swift           # Deterministic structural mock data generation logic
+
+
+🧪 Testing and Verification Strategy
+Protocol-Oriented Decoupling
+By abstracting data access behind an explicit IssueRepositoryProtocol, business logic and view representations are completely agnostic of the underlying data engine. The architecture does not care if it is talking to SwiftData, CoreData, or a pure local memory array.
+
+Fast, Deterministic Unit Testing
+Rather than instantiating a slow, volatile, in-memory ModelContainer test harness that mixes database engine testing with business logic validation, the testing suite injects a synchronous MockIssueRepository stub into the IssueListVM.
+
+This allows state verification to run in microseconds.
+
+It eliminates concurrency flakiness and race conditions inside the test runner.
+
+It cleanly isolates presentation side-effects (such as form fields wiping on creation or error handling displays) from database access errors.
+
+⚙️ Technical Environment Requirements
+Platform iOS: iOS 17.0+
+
+Development Environment: Xcode 15.0+ / Swift 6 Toolchain
+
+Concurrency Engine: Modern Swift Concurrency (Actors, Async/Await, Tasks)
+
+First-Party Frameworks Used: SwiftUI, SwiftData, Network, Testing
